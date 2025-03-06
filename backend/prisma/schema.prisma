@@ -13,8 +13,8 @@ model User {
   email     String    @unique
   password  String
   createdAt DateTime  @default(now())
-  events    Event[]   @relation("Organizer")
-  registrations Registration[]
+  events    Event[]   @relation("Organizer")                // Relación uno a muchos (organizador de eventos)
+  registrations Registration[]                              // Relación muchos a muchos (inscripciones)
 }
 
 model Event {
@@ -24,8 +24,8 @@ model Event {
   date        DateTime
   location    String
   organizerId Int
-  organizer   User      @relation("Organizer", fields: [organizerId], references: [id])
-  registrations Registration[]
+  organizer   User      @relation("Organizer", fields: [organizerId], references: [id]) // Relación inversa (organizador)
+  registrations  Registration[]                                                         // Relación muchos a muchos (inscripciones)
 }
 
 model Registration {
