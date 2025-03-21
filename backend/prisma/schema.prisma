@@ -7,33 +7,34 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model User {
-  id        Int       @id @default(autoincrement())
-  name      String
-  email     String    @unique
-  password  String
-  createdAt DateTime  @default(now())
-  events    Event[]   @relation("Organizer")                // Relación uno a muchos (organizador de eventos)
-  registrations Registration[]                              // Relación muchos a muchos (inscripciones)
-}
-
 model Event {
-  id          Int       @id @default(autoincrement())
-  title       String
-  description String
-  date        DateTime
-  location    String
-  organizerId Int
-  organizer   User      @relation("Organizer", fields: [organizerId], references: [id]) // Relación inversa (organizador)
-  registrations  Registration[]                                                         // Relación muchos a muchos (inscripciones)
+  id            Int            @id @default(autoincrement())
+  title         String
+  description   String
+  date          DateTime
+  location      String
+  organizerId   Int
+  organizer     User           @relation("Organizer", fields: [organizerId], references: [id])
+  registrations Registration[]
 }
 
 model Registration {
-  id      Int     @id @default(autoincrement())
+  id      Int   @id @default(autoincrement())
   userId  Int
   eventId Int
-  user    User    @relation(fields: [userId], references: [id])
-  event   Event   @relation(fields: [eventId], references: [id])
+  event   Event @relation(fields: [eventId], references: [id])
+  user    User  @relation(fields: [userId], references: [id])
 
-  @@unique([userId, eventId]) // Evita inscripciones duplicadas
+  @@unique([userId, eventId])
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  name      String
+  email     String   @unique
+  password  String
+  createdAt DateTime @default(now())
+  events        Event[]        @relation("Organizer")
+  registrations Registration[]
+  @@map("users") // o bórralo si prefieres que se llame user a nivel de tabla
 }
