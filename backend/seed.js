@@ -2,14 +2,27 @@ const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 
 async function main() {
-    const newUser = await prisma.usuario.create({
+    // Crear un usuario admin
+    const adminUser = await prisma.user.create({
         data: {
-            email: 'exampafdle5@email.com',
-            nombre: 'maafds134',
-            password: 'saraafrana',
+            name: 'Admin Master',
+            email: 'admin@example.com',
+            password: 'adminpass', // en prod, encripta con bcrypt
+            role: 'ADMIN',         // <--- Asignas el rol
         },
     });
-    console.log('New user created:', newUser);
+    console.log('Admin user created:', adminUser);
+
+    // Crear un usuario normal
+    const normalUser = await prisma.user.create({
+        data: {
+            name: 'User Normal',
+            email: 'user@example.com',
+            password: 'userpass',
+            role: 'USER',          // <--- Asignas el rol
+        },
+    });
+    console.log('Normal user created:', normalUser);
 }
 
 main()

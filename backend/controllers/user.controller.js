@@ -1,9 +1,15 @@
 const userService = require('../services/user.service');
+const {
+    createUserDto,
+    updateUserDto,
+    userToResponseDto,
+} = require('../DTOS/user.dto');
 
 // GET /users
 async function getAllUsers(req, res) {
     try {
         const usuarios = await userService.findAll();
+        // (Opcional) podrías mapear con userToResponseDto si no quieres exponer password
         return res.status(200).json(usuarios);
     } catch (error) {
         console.error('Error al obtener usuarios:', error);
@@ -23,6 +29,7 @@ async function getUserById(req, res) {
         if (!user) {
             return res.status(404).json({ error: 'Usuario no encontrado' });
         }
+        // Opcional: return res.status(200).json(userToResponseDto(user));
         return res.status(200).json(user);
     } catch (error) {
         console.error('Error al obtener usuario:', error);
@@ -33,17 +40,23 @@ async function getUserById(req, res) {
 // POST /users
 async function createUser(req, res) {
     try {
-        const { name, email, password } = req.body;
-        // Validaciones básicas
-        if (!name || !email || !password) {
-            return res.status(400).json({ error: 'Faltan campos obligatorios (name, email, password)' });
-        }
+        // 1. Validar y transformar con DTO
+        const dto = createUserDto(req.body); 
 
-        const newUser = await userService.create({ name, email, password });
-        return res.status(201).json(newUser);
+        // 2. Crear el usuario
+        const newUser = await userService.create(dto);
+
+        // 3. (Opcional) filtrar password
+        return res.status(201).json(userToResponseDto(newUser));
     } catch (error) {
         console.error('Error al crear usuario:', error);
-        // Prisma code: 'P2002' => Unique constraint failed (ej. email duplicado)
+
+        // Si es un error de validación manual (throw new Error)
+        if (error.message.includes('required') || error.message.includes('must be')) {
+            return res.status(400).json({ error: error.message });
+        }
+
+        // Prisma code: 'P2002' => unique constraint failed
         if (error.code === 'P2002') {
             return res.status(409).json({ error: 'El email ya está en uso' });
         }
@@ -55,27 +68,35 @@ async function createUser(req, res) {
 async function updateUser(req, res) {
     try {
         const { id } = req.params;
-        const { email, name, password } = req.body;
-
+        const { name, email, password, role } = req.body;
         if (!id) {
             return res.status(400).json({ error: 'Falta el parámetro "id" en la ruta.' });
         }
-        if (!email && !name && !password) {
-            return res.status(400).json({ error: 'No se han proporcionado campos para actualizar.' });
+
+        // 1. Validar y transformar con DTO
+        const dto = updateUserDto(req.body);
+
+        // 2. Actualizar
+        const updatedUser = await userService.update(Number(id), {
+            name, email, password, role,
+        });
+        if (!updatedUser) {
+            return res.status(404).json({ error: 'Usuario no encontrado' });
         }
 
-        const updatedUser = await userService.update(Number(id), { email, name, password });
-        // Si tu service devuelve null cuando no encuentra el usuario, podrías hacer:
-        // if (!updatedUser) return res.status(404).json({ error: 'Usuario no encontrado' });
-
-        return res.status(200).json(updatedUser);
+        return res.status(200).json(userToResponseDto(updatedUser));
     } catch (error) {
         console.error('Error al actualizar usuario:', error);
-        // Si es un error de Prisma que indica que no encontró el registro:
+
+        // Errores de validación manual
+        if (error.message.includes('No fields to update') || error.message.includes('must be')) {
+            return res.status(400).json({ error: error.message });
+        }
+        // Prisma: registro no encontrado
         if (error.code === 'P2025') {
             return res.status(404).json({ error: 'Usuario no encontrado' });
         }
-        // Si es un error de unique constraint (email duplicado):
+        // Prisma: email duplicado
         if (error.code === 'P2002') {
             return res.status(409).json({ error: 'El email ya está en uso' });
         }
@@ -92,10 +113,9 @@ async function deleteUser(req, res) {
         }
 
         await userService.remove(Number(id));
-        return res.status(204).send(); // No Content
+        return res.status(204).send();
     } catch (error) {
         console.error('Error al eliminar usuario:', error);
-        // Si Prisma lanza P2025 => no encontró el registro
         if (error.code === 'P2025') {
             return res.status(404).json({ error: 'Usuario no encontrado' });
         }

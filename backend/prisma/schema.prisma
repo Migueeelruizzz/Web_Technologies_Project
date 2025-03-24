@@ -14,7 +14,7 @@ model Event {
   date          DateTime
   location      String
   organizerId   Int
-  organizer     User           @relation("Organizer", fields: [organizerId], references: [id])
+  organizer     users          @relation("Organizer", fields: [organizerId], references: [id])
   registrations Registration[]
 }
 
@@ -23,18 +23,23 @@ model Registration {
   userId  Int
   eventId Int
   event   Event @relation(fields: [eventId], references: [id])
-  user    User  @relation(fields: [userId], references: [id])
+  user    users @relation(fields: [userId], references: [id])
 
   @@unique([userId, eventId])
 }
 
-model User {
-  id        Int      @id @default(autoincrement())
-  name      String
-  email     String   @unique
-  password  String
-  createdAt DateTime @default(now())
+enum Role {
+  ADMIN
+  USER
+}
+
+model users {
+  id            Int            @id(map: "User_pkey") @default(autoincrement())
+  name          String
+  email         String         @unique(map: "User_email_key")
+  password      String
+  createdAt     DateTime       @default(now())
+  role       Role      @default(USER)  // <--- Campo nuevo con enum
   events        Event[]        @relation("Organizer")
   registrations Registration[]
-  @@map("users") // o bórralo si prefieres que se llame user a nivel de tabla
 }

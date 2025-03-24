@@ -1,13 +1,18 @@
 const registrationService = require('../services/registration.service');
+const {
+    createRegistrationDto,
+    updateRegistrationDto,
+    registrationToResponseDto,
+} = require('../DTOS/registration.dto');
 
 // GET /registrations
 async function getAllRegistrations(req, res) {
     try {
         const registrations = await registrationService.findAll();
-        res.status(200).json(registrations);
+        return res.status(200).json(registrations);
     } catch (error) {
         console.error('Error al obtener registros:', error);
-        res.status(500).json({ error: 'Error interno al obtener registros' });
+        return res.status(500).json({ error: 'Error interno al obtener registros' });
     }
 }
 
@@ -23,39 +28,34 @@ async function getRegistrationById(req, res) {
         if (!registration) {
             return res.status(404).json({ error: 'Registro no encontrado' });
         }
-        res.status(200).json(registration);
+        return res.status(200).json(registration);
     } catch (error) {
         console.error('Error al obtener registro:', error);
-        res.status(500).json({ error: 'Error interno al obtener registro' });
+        return res.status(500).json({ error: 'Error interno al obtener registro' });
     }
 }
 
 // POST /registrations
 async function createRegistration(req, res) {
     try {
-        const { userId, eventId } = req.body;
-        if (!userId || !eventId) {
-            return res.status(400).json({ error: 'Faltan campos obligatorios (userId, eventId)' });
-        }
-
-        const newRegistration = await registrationService.create({
-            userId: Number(userId),
-            eventId: Number(eventId),
-        });
-        res.status(201).json(newRegistration);
+        const dto = createRegistrationDto(req.body);
+        const newRegistration = await registrationService.create(dto);
+        return res.status(201).json(registrationToResponseDto(newRegistration));
     } catch (error) {
         console.error('Error al crear registro:', error);
-        // Si foreign key userId o eventId no existe
-        if (error.code === 'P2003') {
-            return res
-                .status(409)
-                .json({ error: 'El userId o eventId no existe (violación de foreign key)' });
+
+        if (error.message.includes('required')) {
+            return res.status(400).json({ error: error.message });
         }
-        // Si ya existe la combinación userId-eventId (si tienes un unique en Registration)
+        if (error.code === 'P2003') {
+            return res.status(409).json({
+                error: 'El userId o eventId no existe (violación de foreign key)',
+            });
+        }
         if (error.code === 'P2002') {
             return res.status(409).json({ error: 'El usuario ya está registrado en ese evento' });
         }
-        res.status(500).json({ error: 'Error interno al crear registro' });
+        return res.status(500).json({ error: 'Error interno al crear registro' });
     }
 }
 
@@ -63,35 +63,32 @@ async function createRegistration(req, res) {
 async function updateRegistration(req, res) {
     try {
         const { id } = req.params;
-        const { userId, eventId } = req.body;
         if (!id) {
             return res.status(400).json({ error: 'Falta el parámetro "id" en la ruta.' });
         }
-        if (!userId && !eventId) {
-            return res
-                .status(400)
-                .json({ error: 'No se han proporcionado campos (userId, eventId) para actualizar.' });
-        }
 
-        const updatedRegistration = await registrationService.update(Number(id), {
-            userId: userId ? Number(userId) : undefined,
-            eventId: eventId ? Number(eventId) : undefined,
-        });
-        if (!updatedRegistration) {
+        const dto = updateRegistrationDto(req.body);
+        const updatedReg = await registrationService.update(Number(id), dto);
+
+        if (!updatedReg) {
             return res.status(404).json({ error: 'Registro no encontrado' });
         }
-        res.status(200).json(updatedRegistration);
+        return res.status(200).json(registrationToResponseDto(updatedReg));
     } catch (error) {
         console.error('Error al actualizar registro:', error);
+
+        if (error.message.includes('No fields to update')) {
+            return res.status(400).json({ error: error.message });
+        }
         if (error.code === 'P2025') {
             return res.status(404).json({ error: 'Registro no encontrado' });
         }
         if (error.code === 'P2003') {
-            return res
-                .status(409)
-                .json({ error: 'userId o eventId no existe (violación de foreign key)' });
+            return res.status(409).json({
+                error: 'userId o eventId no existe (violación de foreign key)',
+            });
         }
-        res.status(500).json({ error: 'Error interno al actualizar registro' });
+        return res.status(500).json({ error: 'Error interno al actualizar registro' });
     }
 }
 
@@ -110,7 +107,7 @@ async function deleteRegistration(req, res) {
         if (error.code === 'P2025') {
             return res.status(404).json({ error: 'Registro no encontrado' });
         }
-        res.status(500).json({ error: 'Error interno al eliminar registro' });
+        return res.status(500).json({ error: 'Error interno al eliminar registro' });
     }
 }
 
