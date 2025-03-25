@@ -9,10 +9,14 @@ const userRoutes = require('./routes/user.routes');
 const eventRoutes = require('./routes/event.routes');
 const registrationRoutes = require('./routes/registration.routes');
 const authRoutes = require('./routes/auth.routes');
+const { setupSwagger } = require('./swagger'); // la ruta a tu swagger.js
+
 
 const app = express();
 const errorHandler = require('./middlewares/errorHandler');
 const PORT = 3000;
+
+setupSwagger(app);
 
 app.use(express.json());
 
@@ -24,4 +28,5 @@ app.use('/', authRoutes);
 
 app.listen(PORT, () => {
     console.log(`Servidor corriendo en http://localhost:${PORT}`);
+    console.log(`Documentación en http://localhost:${PORT}/api-docs`);
 });
