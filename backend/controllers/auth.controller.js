@@ -1,36 +1,26 @@
-// controllers/auth.controller.js
-const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient();
+require('dotenv').config();
 const jwt = require('jsonwebtoken');
+const prisma = require('../prisma');
 
 async function login(req, res) {
     try {
         const { email, password } = req.body;
-
-        // 1. Verificar que vengan email y password
         if (!email || !password) {
             return res.status(400).json({ error: 'Faltan credenciales' });
         }
 
-        // 2. Buscar usuario en DB (ajusta según tu modelo)
-        const user = await prisma.user.findUnique({ where: { email } });
-        if (!user) {
+        // Usar prisma.users en lugar de prisma.user
+        const user = await prisma.users.findUnique({ where: { email } });
+        if (!user || user.password !== password) {
             return res.status(401).json({ error: 'Credenciales inválidas' });
         }
 
-        // 3. Comparar contraseña (aquí suponemos en texto plano; en prod, usa bcrypt)
-        if (user.password !== password) {
-            return res.status(401).json({ error: 'Credenciales inválidas' });
-        }
-
-        // 4. Crear token con claims (userId, role, etc.)
         const token = jwt.sign(
-            { userId: user.id, role: user.role },        // Payload
-            process.env.JWT_SECRET,                     // Clave secreta
-            { expiresIn: '1h' }                         // Opcional: expira en 1 hora
+            { userId: user.id, role: user.role },
+            process.env.JWT_SECRET,
+            { expiresIn: '1h' }
         );
 
-        // 5. Devolver token al cliente
         return res.json({ token });
     } catch (error) {
         console.error('Error al hacer login:', error);
@@ -38,6 +28,4 @@ async function login(req, res) {
     }
 }
 
-module.exports = {
-    login,
-};
+module.exports = { login };

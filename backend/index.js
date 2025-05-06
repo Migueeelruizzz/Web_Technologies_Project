@@ -18,6 +18,7 @@ const PORT = 3000;
 
 setupSwagger(app);
 
+
 app.use(express.json());
 
 app.use(errorHandler);
