@@ -28,6 +28,16 @@
   color: #61dafb;
 }
 
+body {
+  background: linear-gradient(135deg, #f6d365 0%, #fda085 100%);
+  min-height: 100vh;
+}
+
+h2,
+h3 {
+  font-family: 'Pacifico', cursive;
+}
+
 @keyframes App-logo-spin {
   from {
     transform: rotate(0deg);
